@@ -16,34 +16,40 @@ interface PageProps {
   }
 }
 
+// Generate static params for static export
+export async function generateStaticParams() {
+  // Return empty array to allow dynamic rendering during static export
+  // This satisfies Next.js static export requirements for catch-all routes
+  return []
+}
+
 export default async function BrowsePage({ params }: PageProps) {
   const filePath = params.path.join("/")
-
+  
   try {
     const fileContent = await getFile(filePath)
-
+    
     if (fileContent) {
       // It's a file - render markdown
       const { content, frontMatter } = parseMarkdown(fileContent)
-
       const hasYamlError = frontMatter.status === "yaml-error"
-
+      
       const githubUrl = `https://github.com/${process.env.REPO_OWNER || "Work-Local-Inc"}/${process.env.REPO_NAME || "worklocal-knowledge"}/blob/${process.env.REPO_BRANCH || "main"}/${filePath}`
       const rawUrl = `https://raw.githubusercontent.com/${process.env.REPO_OWNER || "Work-Local-Inc"}/${process.env.REPO_NAME || "worklocal-knowledge"}/${process.env.REPO_BRANCH || "main"}/${filePath}`
-
+      
       return (
         <div className="min-h-screen bg-background">
           <header className="border-b bg-card p-4">
             <div className="max-w-7xl mx-auto">
               <Breadcrumb path={filePath} />
               <div className="flex gap-2 mt-2">
-                <Button variant="outline" size="sm" asChild>
+                <Button asChild size="sm" variant="outline">
                   <a href={githubUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Open on GitHub
                   </a>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
+                <Button asChild size="sm" variant="outline">
                   <a href={rawUrl} target="_blank" rel="noopener noreferrer">
                     View Raw
                   </a>
@@ -52,7 +58,7 @@ export default async function BrowsePage({ params }: PageProps) {
               </div>
             </div>
           </header>
-
+          
           <div className="max-w-7xl mx-auto flex">
             <aside className="w-80 border-r bg-card/50 min-h-screen p-4">
               {hasYamlError && (
@@ -66,7 +72,7 @@ export default async function BrowsePage({ params }: PageProps) {
               )}
               <MetadataPanel frontMatter={frontMatter} />
             </aside>
-
+            
             <main className="flex-1 p-8">
               <MarkdownRenderer content={content} />
             </main>
@@ -75,18 +81,18 @@ export default async function BrowsePage({ params }: PageProps) {
       )
     } else {
       const directoryContents = await getDirectoryContents(filePath)
-
+      
       if (directoryContents.length > 0 || filePath === "") {
         // It's a directory - show directory listing
         const githubUrl = `https://github.com/${process.env.REPO_OWNER || "Work-Local-Inc"}/${process.env.REPO_NAME || "worklocal-knowledge"}/tree/${process.env.REPO_BRANCH || "main"}/${filePath}`
-
+        
         return (
           <div className="min-h-screen bg-background">
             <header className="border-b bg-card p-4">
               <div className="max-w-7xl mx-auto">
                 <Breadcrumb path={filePath} />
                 <div className="flex gap-2 mt-2">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button asChild size="sm" variant="outline">
                     <a href={githubUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Open on GitHub
@@ -96,9 +102,9 @@ export default async function BrowsePage({ params }: PageProps) {
                 </div>
               </div>
             </header>
-
+            
             <main className="max-w-7xl mx-auto p-8">
-              <DirectoryListing items={directoryContents} currentPath={filePath} />
+              <DirectoryListing currentPath={filePath} items={directoryContents} />
             </main>
           </div>
         )
@@ -109,7 +115,7 @@ export default async function BrowsePage({ params }: PageProps) {
     }
   } catch (error) {
     console.error("Error loading file:", error)
-
+    
     if (error instanceof Error && error.message.includes("GITHUB_TOKEN")) {
       return (
         <div className="min-h-screen bg-background p-8">
@@ -121,48 +127,48 @@ export default async function BrowsePage({ params }: PageProps) {
                 To access the repository content, you need to set up a GitHub token in your environment variables.
               </AlertDescription>
             </Alert>
-
+            
             <div className="bg-card p-6 rounded-lg border">
               <h2 className="text-lg font-semibold mb-4">Setup Instructions:</h2>
               <ol className="list-decimal list-inside space-y-2 text-sm">
                 <li>
-                  Click the <strong>gear icon</strong> in the top right of v0
+                  Click the gear icon in the top right of v0
                 </li>
                 <li>
-                  Go to <strong>Project Settings</strong>
+                  Go to Project Settings
                 </li>
                 <li>
                   Add these environment variables:
                   <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
                     <li>
-                      <code>GITHUB_TOKEN</code> - Your GitHub personal access token
+                      GITHUB_TOKEN - Your GitHub personal access token
                     </li>
                     <li>
-                      <code>REPO_OWNER</code> - Set to <code>Work-Local-Inc</code>
+                      REPO_OWNER - Set to Work-Local-Inc
                     </li>
                     <li>
-                      <code>REPO_NAME</code> - Set to <code>worklocal-knowledge</code>
+                      REPO_NAME - Set to worklocal-knowledge
                     </li>
                     <li>
-                      <code>REPO_BRANCH</code> - Set to <code>main</code>
+                      REPO_BRANCH - Set to main
                     </li>
                   </ul>
                 </li>
               </ol>
-
+              
               <div className="mt-4 p-3 bg-muted rounded text-sm">
-                <strong>To create a GitHub token:</strong>
-                <br />
+                To create a GitHub token:
+                <br /><br />
                 Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
-                <br />
-                Generate a new token with <code>public_repo</code> scope
+                <br /><br />
+                Generate a new token with public_repo scope
               </div>
             </div>
           </div>
         </div>
       )
     }
-
+    
     notFound()
   }
 }
