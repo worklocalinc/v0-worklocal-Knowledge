@@ -29,10 +29,16 @@ export default async function HomePage({
 
   try {
     console.log("[v0] Starting GitHub API calls")
-    const results = await Promise.all([getRepoTree(), isGoldenFilter ? getGoldenList() : Promise.resolve([])])
+    const results = await Promise.all([
+      getRepoTree(),
+      isGoldenFilter ? getGoldenList() : Promise.resolve([])
+    ])
     tree = results[0]
     goldenFiles = results[1]
-    console.log("[v0] GitHub API calls successful:", { treeCount: tree.length, goldenCount: goldenFiles.length })
+    console.log("[v0] GitHub API calls successful:", {
+      treeCount: tree.length,
+      goldenCount: goldenFiles.length
+    })
   } catch (err) {
     console.error("[v0] Error loading data:", err)
     error = err instanceof Error ? err.message : "Failed to load repository data"
@@ -40,7 +46,9 @@ export default async function HomePage({
     console.log("[v0] Error details:", { error, isTokenError })
   }
 
-  const filteredTree = isGoldenFilter ? tree.filter((item) => goldenFiles.includes(item.path)) : tree
+  const filteredTree = isGoldenFilter
+    ? tree.filter((item) => goldenFiles.includes(item.path))
+    : tree
 
   const searchFilteredTree = searchQuery
     ? filteredTree.filter(
@@ -50,18 +58,21 @@ export default async function HomePage({
       )
     : filteredTree
 
-  const totalDocs = tree.filter((item) => item.type === "file" && item.name.endsWith(".md")).length
+  const totalDocs = tree.filter(
+    (item) => item.type === "file" && item.name.endsWith(".md")
+  ).length
   const goldenCount = goldenFiles.length
 
   console.log("[v0] HomePage rendering completed")
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card p-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold mb-4">Worklocal Knowledge Portal</h1>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <GoldenToggle />
             <SearchBox />
+            <GoldenToggle />
             <div className="text-sm text-muted-foreground">
               {totalDocs} docs • {goldenCount} golden
             </div>
@@ -80,27 +91,19 @@ export default async function HomePage({
                   <AlertTitle>Setup Required</AlertTitle>
                   <AlertDescription className="mt-2 text-xs">
                     <div className="space-y-2">
-                      <p>GitHub token needed to access repository.</p>
+                      GitHub token needed to access repository.
                       <div>
-                        <strong>Setup steps:</strong>
+                        Setup steps:
                         <ol className="list-decimal list-inside mt-1 space-y-1">
                           <li>Click gear icon (top right)</li>
                           <li>Go to Project Settings</li>
                           <li>
                             Add environment variables:
                             <ul className="list-disc list-inside ml-3 mt-1">
-                              <li>
-                                <code>GITHUB_TOKEN</code>
-                              </li>
-                              <li>
-                                <code>REPO_OWNER</code>: Work-Local-Inc
-                              </li>
-                              <li>
-                                <code>REPO_NAME</code>: worklocal-knowledge
-                              </li>
-                              <li>
-                                <code>REPO_BRANCH</code>: main
-                              </li>
+                              <li>GITHUB_TOKEN</li>
+                              <li>REPO_OWNER: Work-Local-Inc</li>
+                              <li>REPO_NAME: worklocal-knowledge</li>
+                              <li>REPO_BRANCH: main</li>
                             </ul>
                           </li>
                         </ol>
@@ -138,18 +141,18 @@ export default async function HomePage({
                         token.
                       </p>
                       <div className="text-left bg-muted p-3 rounded text-sm">
-                        <strong>Create GitHub Token:</strong>
+                        Create GitHub Token:
                         <br />
                         GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
                         <br />
-                        Generate with <code>public_repo</code> scope
+                        Generate with public_repo scope
                       </div>
                     </AlertDescription>
                   </Alert>
                 </div>
               ) : (
                 <div className="text-red-600">
-                  <p>Unable to load repository data. Please check your GitHub token configuration.</p>
+                  Unable to load repository data. Please check your GitHub token configuration.
                 </div>
               )
             ) : (
