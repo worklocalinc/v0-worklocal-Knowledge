@@ -38,44 +38,66 @@ async function githubFetch(path: string) {
   const owner = process.env.REPO_OWNER || "Work-Local-Inc"
   const repo = process.env.REPO_NAME || "worklocal-knowledge"
 
+  console.log("[v0] GitHub fetch attempt:", { path, owner, repo, hasToken: !!token })
+
   if (!token) {
-    console.error("GITHUB_TOKEN environment variable is missing. Please add it to your environment variables.")
+    console.error("[v0] GITHUB_TOKEN environment variable is missing")
     throw new Error(
       "GITHUB_TOKEN environment variable is required. Please add your GitHub token to the environment variables in your deployment settings or .env.local file.",
     )
   }
 
   const url = `https://api.github.com/repos/${owner}/${repo}/${path}`
+  console.log("[v0] GitHub API URL:", url)
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "Worklocal-Knowledge-Portal",
-    },
-    next: { revalidate: 300 }, // 5 minutes
-  })
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "Worklocal-Knowledge-Portal",
+      },
+      next: { revalidate: 300 }, // 5 minutes
+    })
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      return null
+    console.log("[v0] GitHub API response:", { status: response.status, statusText: response.statusText })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log("[v0] GitHub API returned 404 - resource not found")
+        return null
+      }
+      console.error("[v0] GitHub API error:", response.status, response.statusText)
+      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
     }
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
-  }
 
-  return response.json()
+    const data = await response.json()
+    console.log("[v0] GitHub API success:", { dataType: typeof data, hasTree: !!data.tree })
+    return data
+  } catch (fetchError) {
+    console.error("[v0] GitHub fetch error:", fetchError)
+    throw fetchError
+  }
 }
 
 export async function getRepoTree(): Promise<GitHubTreeItem[]> {
+  console.log("[v0] getRepoTree called")
   const cacheKey = "repo-tree"
   const cached = getCached<GitHubTreeItem[]>(cacheKey)
-  if (cached) return cached
+  if (cached) {
+    console.log("[v0] Returning cached repo tree:", cached.length, "items")
+    return cached
+  }
 
   try {
     const branch = process.env.REPO_BRANCH || "main"
+    console.log("[v0] Fetching repo tree for branch:", branch)
     const data: GitHubApiTreeResponse = await githubFetch(`git/trees/${branch}?recursive=1`)
 
-    if (!data) return []
+    if (!data) {
+      console.log("[v0] No data returned from GitHub API")
+      return []
+    }
 
     const items: GitHubTreeItem[] = data.tree
       .filter((item) => item.type === "blob" && item.path.endsWith(".md"))
@@ -87,12 +109,13 @@ export async function getRepoTree(): Promise<GitHubTreeItem[]> {
       }))
       .sort((a, b) => a.path.localeCompare(b.path))
 
+    console.log("[v0] Processed repo tree:", items.length, "markdown files")
     setCache(cacheKey, items)
     return items
   } catch (error) {
-    console.error("Error fetching repo tree:", error)
+    console.error("[v0] Error fetching repo tree:", error)
     if (error instanceof Error && error.message.includes("GITHUB_TOKEN")) {
-      console.error("Please set up your GitHub token in the environment variables.")
+      console.error("[v0] GitHub token error - please check environment variables")
     }
     return []
   }

@@ -11,6 +11,14 @@ export default async function HomePage({
 }: {
   searchParams: { golden?: string; search?: string }
 }) {
+  console.log("[v0] HomePage rendering started")
+  console.log("[v0] Environment check:", {
+    hasToken: !!process.env.GITHUB_TOKEN,
+    repoOwner: process.env.REPO_OWNER || "Work-Local-Inc",
+    repoName: process.env.REPO_NAME || "worklocal-knowledge",
+    repoBranch: process.env.REPO_BRANCH || "main",
+  })
+
   const isGoldenFilter = searchParams.golden === "true"
   const searchQuery = searchParams.search || ""
 
@@ -20,13 +28,16 @@ export default async function HomePage({
   let isTokenError = false
 
   try {
+    console.log("[v0] Starting GitHub API calls")
     const results = await Promise.all([getRepoTree(), isGoldenFilter ? getGoldenList() : Promise.resolve([])])
     tree = results[0]
     goldenFiles = results[1]
+    console.log("[v0] GitHub API calls successful:", { treeCount: tree.length, goldenCount: goldenFiles.length })
   } catch (err) {
-    console.error("Error loading data:", err)
+    console.error("[v0] Error loading data:", err)
     error = err instanceof Error ? err.message : "Failed to load repository data"
     isTokenError = err instanceof Error && err.message.includes("GITHUB_TOKEN")
+    console.log("[v0] Error details:", { error, isTokenError })
   }
 
   const filteredTree = isGoldenFilter ? tree.filter((item) => goldenFiles.includes(item.path)) : tree
@@ -42,6 +53,7 @@ export default async function HomePage({
   const totalDocs = tree.filter((item) => item.type === "file" && item.name.endsWith(".md")).length
   const goldenCount = goldenFiles.length
 
+  console.log("[v0] HomePage rendering completed")
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card p-4">

@@ -11,14 +11,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Worklocal Knowledge Portal",
   description: "Browse and search the Worklocal knowledge repository",
-  generator: "v0.app",
+    generator: 'v0.app'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased">{children}</body>
